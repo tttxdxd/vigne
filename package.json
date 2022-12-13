@@ -1,0 +1,72 @@
+{
+  "name": "vigne",
+  "type": "module",
+  "version": "0.0.0",
+  "packageManager": "pnpm@7.12.0",
+  "description": "Simple relational data manager provides APIs without writing any code",
+  "author": "tttxdxd <tttxdxd@qq.com>",
+  "license": "MIT",
+  "funding": "https://github.com/sponsors/tttxdxd",
+  "homepage": "https://github.com/tttxdxd/vigne#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tttxdxd/vigne.git"
+  },
+  "bugs": "https://github.com/tttxdxd/vigne/issues",
+  "keywords": [
+    "api",
+    "crud",
+    "nocode"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*",
+        "./dist/index.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "lint": "eslint .",
+    "release": "bumpp && npm publish",
+    "start": "esno src/index.ts",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "better-sqlite3": "^8.0.1",
+    "knex": "^2.3.0",
+    "sqlite3": "^5.1.2"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^0.27.0",
+    "@antfu/ni": "^0.18.0",
+    "@antfu/utils": "^0.5.2",
+    "@types/node": "^18.7.18",
+    "bumpp": "^8.2.1",
+    "eslint": "^8.23.1",
+    "esno": "^0.16.3",
+    "pnpm": "^7.12.0",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.8.3",
+    "unbuild": "^0.8.11",
+    "vite": "^3.1.2",
+    "vitest": "^0.23.4"
+  }
+}
