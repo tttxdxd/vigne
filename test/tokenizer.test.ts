@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ApiContext } from '../src'
-import { TokenType } from '../src/tokenizer'
+import { ApiContext } from 'vigne'
+
+import { TokenType } from '../src/common/enum'
 
 import './mock'
 
-const tokens = (input: any) => {
+const tokens = (input: Record<string, any>) => {
   const ctx = ApiContext.query(input)
 
   ctx.tokenize()
@@ -21,14 +22,6 @@ describe('tokenizer', () => {
     expect(output).toMatchObject([])
   })
 
-  it('tokenize undefined', () => {
-    const input = undefined
-    const output = tokens(input)
-
-    expect(output.length).toBe(0)
-    expect(output).toMatchObject([])
-  })
-
   it('tokenize model true', () => {
     const input = { test: true }
     const output = tokens(input)
@@ -37,8 +30,8 @@ describe('tokenizer', () => {
     expect(output[0]).toMatchObject({
       type: TokenType.Info,
       model: 'test',
-      modelInfo: { model: 'test', groupModel: 'tests', isGroup: false },
-      modelExtra: { isGroup: false, isUnion: false, isBatch: false, isBatchParent: false },
+      info: { model: 'test', groupModel: 'tests', isGroup: false },
+      extra: { isGroup: false, isUnion: false, isBatch: false, isBatchParent: false },
     })
   })
 
@@ -50,8 +43,8 @@ describe('tokenizer', () => {
     expect(output[0]).toMatchObject({
       type: TokenType.Info,
       model: 'test',
-      modelInfo: { model: 'test', groupModel: 'tests', isGroup: false },
-      modelExtra: {
+      info: { model: 'test', groupModel: 'tests', isGroup: false },
+      extra: {
         isGroup: false,
         isUnion: false,
         isBatch: false,
@@ -70,8 +63,8 @@ describe('tokenizer', () => {
     expect(output[0]).toMatchObject({
       type: TokenType.Info,
       model: 'test',
-      modelInfo: { model: 'test', groupModel: 'tests', isGroup: false },
-      modelExtra: {
+      info: { model: 'test', groupModel: 'tests', isGroup: false },
+      extra: {
         isGroup: false,
         isUnion: false,
         isBatch: false,
@@ -90,8 +83,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'test',
-        modelInfo: { model: 'test', groupModel: 'tests', isGroup: false },
-        modelExtra: {
+        info: { model: 'test', groupModel: 'tests', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: false,
           isBatch: false,
@@ -103,8 +96,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'model',
-        modelInfo: { model: 'model', groupModel: 'models', isGroup: false },
-        modelExtra: {
+        info: { model: 'model', groupModel: 'models', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: true,
           isBatch: false,
@@ -129,8 +122,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.List,
         model: 'test',
-        modelInfo: { model: 'test', groupModel: 'tests', isGroup: true },
-        modelExtra: {
+        info: { model: 'test', groupModel: 'tests', isGroup: true },
+        extra: {
           isGroup: true,
           isUnion: false,
           isBatch: true,
@@ -142,8 +135,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'model',
-        modelInfo: { model: 'model', groupModel: 'models', isGroup: false },
-        modelExtra: {
+        info: { model: 'model', groupModel: 'models', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: true,
           isBatch: true,
@@ -168,8 +161,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.List,
         model: 'test',
-        modelInfo: { model: 'test', groupModel: 'tests', isGroup: true },
-        modelExtra: {
+        info: { model: 'test', groupModel: 'tests', isGroup: true },
+        extra: {
           isGroup: true,
           isUnion: false,
           isBatch: true,
@@ -181,8 +174,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.List,
         model: 'model',
-        modelInfo: { model: 'model', groupModel: 'models', isGroup: true },
-        modelExtra: {
+        info: { model: 'model', groupModel: 'models', isGroup: true },
+        extra: {
           isGroup: true,
           isUnion: true,
           isBatch: true,
@@ -207,8 +200,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'test',
-        modelInfo: { model: 'test', groupModel: 'tests', isGroup: false },
-        modelExtra: {
+        info: { model: 'test', groupModel: 'tests', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: false,
           isBatch: false,
@@ -220,8 +213,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'model',
-        modelInfo: { model: 'model', groupModel: 'models', isGroup: false },
-        modelExtra: {
+        info: { model: 'model', groupModel: 'models', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: false,
           isBatch: false,
@@ -233,8 +226,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'connect',
-        modelInfo: { model: 'connect', groupModel: 'connects', isGroup: false },
-        modelExtra: {
+        info: { model: 'connect', groupModel: 'connects', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: false,
           isBatch: false,
@@ -254,8 +247,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'connect',
-        modelInfo: { model: 'connect', groupModel: 'connects', isGroup: false },
-        modelExtra: {
+        info: { model: 'connect', groupModel: 'connects', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: false,
           isBatch: false,
@@ -267,8 +260,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'test',
-        modelInfo: { model: 'test', groupModel: 'tests', isGroup: false },
-        modelExtra: {
+        info: { model: 'test', groupModel: 'tests', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: true,
           isBatch: false,
@@ -286,8 +279,8 @@ describe('tokenizer', () => {
       {
         type: TokenType.Info,
         model: 'model',
-        modelInfo: { model: 'model', groupModel: 'models', isGroup: false },
-        modelExtra: {
+        info: { model: 'model', groupModel: 'models', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: true,
           isBatch: false,
@@ -315,8 +308,8 @@ describe('tokenizer with condition', () => {
       {
         type: TokenType.Info,
         model: 'test',
-        modelInfo: { model: 'test', groupModel: 'tests', isGroup: false },
-        modelExtra: {
+        info: { model: 'test', groupModel: 'tests', isGroup: false },
+        extra: {
           isGroup: false,
           isUnion: false,
           isBatch: false,
@@ -325,6 +318,30 @@ describe('tokenizer with condition', () => {
           parentKeys: [],
         },
 
+        filter: { id: 11 },
+      },
+    ])
+  })
+
+  it('field: alias primary', () => {
+    const input = { test: { 'id': 11, '@field': 'id:idddddd' } }
+    const output = tokens(input)
+
+    expect(output).toMatchObject([
+      {
+        type: TokenType.Info,
+        model: 'test',
+        info: { model: 'test', groupModel: 'tests', isGroup: false },
+        extra: {
+          isGroup: false,
+          isUnion: false,
+          isBatch: false,
+          isBatchParent: false,
+          keys: ['test'],
+          parentKeys: [],
+        },
+
+        fields: [{ field: 'id', alias: 'idddddd' }],
         filter: { id: 11 },
       },
     ])

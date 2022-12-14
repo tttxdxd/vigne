@@ -1,22 +1,28 @@
-import { isObject, isUndefined } from './utils'
-import type { IModelColumn, IModelConfig, ISimpleModelConfig } from './model'
-import type { IOutput } from './context'
-import { API_OUTPUT, ApiCode, ApiContext, ApiType } from './context'
-import type { Token } from './tokenizer'
-import { Tokenizer } from './tokenizer'
-import type { IRule } from './rules'
-import { Rules } from './rules'
-import type { IParser } from './parser'
-import type { IExecutor } from './executor'
+import type { ApiContext } from '../context'
+import type { IRule } from '../rules'
+import { Rules } from '../rules'
+import { Tokenizer } from '../tokenizer'
+import type { IExecutor, IModelColumn, IModelConfig, IParser, ISimpleModelConfig, Token } from '../types'
+import { isUndefined } from '../utils'
+import { ApiType } from './enum'
 
-export class ApiManager {
-  static isDebug = true
-
+export class GlobalConfig {
   static MODEL_MAP: Record<string, IModelConfig> = {}
   static MODEL_INFO_MAP: Record<string, ISimpleModelConfig> = {}
   static MODEL_RULES_MAP: Record<string, Record<string, IRule>> = {}
   static MODEL_COLUMNS_MAP: Record<string, Record<string, true>> = {}
   static MODEL_COLUMNS_KEY_MAP: Record<string, IModelColumn[]> = {}
+
+  static tokenizers = {
+    [ApiType.Query]: new Tokenizer(),
+    [ApiType.Create]: new Tokenizer(),
+    [ApiType.Update]: new Tokenizer(),
+    [ApiType.Delete]: new Tokenizer(),
+    [ApiType.Count]: new Tokenizer(),
+  }
+
+  static parsers: Record<string, IParser> = {}
+  static executors: Record<string, IExecutor> = {}
 
   static registerModel(modelConfig: IModelConfig) {
     const model = modelConfig.name
@@ -33,8 +39,15 @@ export class ApiManager {
       ...Rules.KEY_LOADER_MAP,
       ...modelConfig.columns.reduce<Record<string, IRule>>((map, column) => {
         map[column.key] = (ctx: ApiContext, token: Token, key: string, value: any) => {
-          if (typeof value !== column.type)
-            return 'key type error'
+          if (token.extra.isGroup) {
+            if (Array.isArray(value)) {
+              if (value.some(v => typeof v !== column.type))
+                return 'key type error'
+            }
+            else if (typeof value !== column.type) { return 'key type error' }
+          }
+          else if (typeof value !== column.type) { return 'key type error' }
+
           if (isUndefined(token.filter))
             token.filter = {}
           token.filter[column.key] = value
@@ -56,48 +69,11 @@ export class ApiManager {
     }, [])
   }
 
-  static tokenizers = {
-    [ApiType.Query]: new Tokenizer(),
-    [ApiType.Create]: new Tokenizer(),
-    [ApiType.Update]: new Tokenizer(),
-    [ApiType.Delete]: new Tokenizer(),
-    [ApiType.Count]: new Tokenizer(),
-  }
-
-  static parsers: Record<string, IParser> = {}
-  static executors: Record<string, IExecutor> = {}
-
   static registerParser(type: string, parser: IParser) {
     this.parsers[type] = parser
   }
 
   static registerExecutor(type: string, executor: IExecutor) {
     this.executors[type] = executor
-  }
-
-  static async query(input: any): Promise<IOutput> {
-    if (!isObject(input))
-      return API_OUTPUT[ApiCode.InputError]
-
-    const ctx = ApiContext.query(input)
-
-    await ctx.tokenize()
-    await ctx.parse()
-    await ctx.execute()
-
-    return ctx.output
-  }
-
-  static async create(input: any): Promise<IOutput> {
-    if (!isObject(input))
-      return API_OUTPUT[ApiCode.InputError]
-
-    const ctx = ApiContext.create(input)
-
-    await ctx.tokenize()
-    await ctx.parse()
-    await ctx.execute()
-
-    return ctx.output
   }
 }

@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es2018",
-    "module": "esnext",
+    "baseUrl": ".",
+    "target": "ESNext",
+    "module": "ESNext",
     "lib": ["esnext"],
     "moduleResolution": "node",
     "experimentalDecorators": true,
@@ -10,6 +11,9 @@
     "strictNullChecks": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "skipDefaultLibCheck": true
+    "skipDefaultLibCheck": true,
+    "paths": {
+      "vigne": ["src/index.ts"]
+    }
   }
 }

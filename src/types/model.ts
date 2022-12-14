@@ -1,3 +1,5 @@
+import type { Token } from '.'
+
 export interface IModelColumn {
   key: string
   desc: string
@@ -72,7 +74,7 @@ export interface ISimpleModelExtra {
   parentKeys: string[]
 
   /**
-   * 父节点额外配置
+   * 子节点
    */
-  parentExtra?: ISimpleModelExtra
+  childTokens: Token[]
 }

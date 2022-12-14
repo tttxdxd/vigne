@@ -49,11 +49,7 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "better-sqlite3": "^8.0.1",
-    "knex": "^2.3.0",
-    "sqlite3": "^5.1.2"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@antfu/eslint-config": "^0.27.0",
     "@antfu/ni": "^0.18.0",

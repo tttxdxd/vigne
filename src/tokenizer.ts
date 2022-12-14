@@ -1,106 +1,15 @@
 import { hasOwnProperty, isFunction, isNotUndefined, isNull, isUndefined } from './utils'
 import type { ApiContext } from './context'
-import type { ISimpleModelConfig, ISimpleModelExtra } from './model'
 import { Rules } from './rules'
-import { ApiManager } from '.'
-
-// #region Token type definitions
-
-export enum TokenType {
-  Info,
-  List,
-}
-
-export interface TokenField {
-  field: string
-  alias?: string
-  temporary?: boolean
-}
-
-export interface TokenSort {
-  field: string
-  /**
-   * asc 升序 desc 降序
-   */
-  order: 'asc' | 'desc'
-}
-export interface TokenForeign {
-  key: string
-  reference: string
-  referKey: string
-  reverse?: boolean
-}
-
-export interface TokenPagination {
-  enabled: boolean
-  offset: number
-  limit: number
-}
-
-export type TokenFilter = any
-
-/**
- * 通用请求 token
- */
-export interface Token {
-  /**
-   * 唯一 ID
-   */
-  id: string
-
-  /**
-   * token 类型
-   */
-  type: TokenType
-
-  /**
-   * 模型名称
-   */
-  model: string
-
-  /**
-   * 模型简单配置信息
-   */
-  modelInfo: ISimpleModelConfig
-
-  /**
-   * 模型额外信息
-   */
-  modelExtra: ISimpleModelExtra
-
-  /**
-   * 字段
-   */
-  fields?: TokenField[]
-
-  /**
-   * 排序
-   */
-  sorts?: TokenSort[]
-
-  /**
-   * 分页
-   */
-  pagination?: TokenPagination
-
-  /**
-   * 条件查询
-   */
-  filter?: TokenFilter
-
-  /**
-   * 外键
-   */
-  foreign?: TokenForeign
-}
-
-// #endregion
+import { TokenType } from './common/enum'
+import type { ISimpleModelConfig, ISimpleModelExtra, Token, TokenForeign } from './types'
+import { GlobalConfig } from './common/config'
 
 /**
  * 入参解析
  */
 export class Tokenizer {
-  tokenize(ctx: ApiContext): ApiContext {
+  tokenize(ctx: ApiContext): Token[] {
     const tokens: Token[] = []
     const input = ctx.input
     const inputKeys = Object.keys(input)
@@ -113,9 +22,7 @@ export class Tokenizer {
       tokens.push(...inputTokens)
     }
 
-    ctx.tokens = tokens
-
-    return ctx
+    return tokens
   }
 
   private getTokens(
@@ -141,9 +48,11 @@ export class Tokenizer {
 
     const parentToken = parentTokens.length ? parentTokens[parentTokens.length - 1] : undefined
     const modelExtra = this.getModelExtra(mainKey, modelInfo, parentToken)
-    const modelRules = ApiManager.MODEL_RULES_MAP[modelInfo.model]!
+    const modelRules = GlobalConfig.MODEL_RULES_MAP[modelInfo.model]!
     const tokenType = this.getTokenType(modelExtra)
     const token = this.token(tokenType, modelInfo, modelExtra, foriegn)
+
+    tokens.push(token)
 
     const afterTokens = []
     const keys = Object.keys(mainValue)
@@ -153,7 +62,7 @@ export class Tokenizer {
       const value = mainValue[key]
 
       if (value == null) {
-        ctx.errors.push('')
+        token.errors.push('')
         return tokens
       }
 
@@ -165,7 +74,7 @@ export class Tokenizer {
         if (isUndefined(error))
           continue
 
-        ctx.errors.push(error)
+        token.errors.push('')
         return tokens
       }
 
@@ -177,13 +86,14 @@ export class Tokenizer {
         continue
       }
 
-      ctx.errors.push('')
+      token.errors.push('')
       return tokens
     }
 
     // TODO 未查询嵌套节点， 无需查询额外的父节点参数
 
-    tokens.push(token, ...afterTokens)
+    token.extra.childTokens = afterTokens
+    tokens.push(...afterTokens)
 
     return tokens
   }
@@ -199,13 +109,13 @@ export class Tokenizer {
   private getModelInfo(key: string, value: Record<string, any>): ISimpleModelConfig | null {
     if (hasOwnProperty(value, Rules.KEY_MODEL)) {
       const model = value[Rules.KEY_MODEL]
-      const modelInfo = ApiManager.MODEL_INFO_MAP[model]
+      const modelInfo = GlobalConfig.MODEL_INFO_MAP[model]
 
       if (modelInfo)
         return modelInfo
     }
 
-    const modelInfo = ApiManager.MODEL_INFO_MAP[key]
+    const modelInfo = GlobalConfig.MODEL_INFO_MAP[key]
 
     if (modelInfo)
       return modelInfo
@@ -216,14 +126,15 @@ export class Tokenizer {
   private getModelExtra(mainKey: string, modelInfo: ISimpleModelConfig, parentToken?: Token): ISimpleModelExtra {
     const isGroup = modelInfo.isGroup
     const isUnion = !!parentToken
-    const isBatchParent = isUnion ? parentToken.modelExtra.isBatch : false
+    const isBatchParent = isUnion ? parentToken.extra.isBatch : false
     const modelExtra: ISimpleModelExtra = {
       isGroup,
       isUnion,
       isBatch: isGroup || isBatchParent,
       isBatchParent,
       keys: [mainKey],
-      parentKeys: isUnion ? [...parentToken.modelExtra.parentKeys, ...parentToken.modelExtra.keys] : [],
+      parentKeys: isUnion ? [...parentToken.extra.parentKeys, ...parentToken.extra.keys] : [],
+      childTokens: [],
     }
 
     return modelExtra
@@ -243,11 +154,11 @@ export class Tokenizer {
       return null
 
     const parentToken = parentTokens[parentTokens.length - 1]
-    const modelConfig = ApiManager.MODEL_MAP[modelInfo.model]!
+    const modelConfig = GlobalConfig.MODEL_MAP[modelInfo.model]!
     const foreign = modelConfig.foreigns?.find(v => v.reference === parentToken.model)
 
     if (isUndefined(foreign)) {
-      const parentModelInfo = ApiManager.MODEL_MAP[parentToken.model]!
+      const parentModelInfo = GlobalConfig.MODEL_MAP[parentToken.model]!
       const reverseForeign = parentModelInfo.foreigns?.find(v => v.reference === modelInfo.model)
 
       if (isNotUndefined(reverseForeign)) {
@@ -267,16 +178,17 @@ export class Tokenizer {
 
   private token(
     type: TokenType,
-    modelInfo: ISimpleModelConfig,
-    modelExtra: ISimpleModelExtra,
+    info: ISimpleModelConfig,
+    extra: ISimpleModelExtra,
     foreign?: TokenForeign,
   ): Token {
     return {
       id: '',
       type,
-      model: modelInfo.model,
-      modelInfo,
-      modelExtra,
+      model: info.model,
+      info,
+      extra,
+      errors: [],
       foreign,
       filter: foreign ? {} : undefined,
     }

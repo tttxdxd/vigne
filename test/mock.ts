@@ -1,4 +1,4 @@
-import { ApiManager } from '../src/api'
+import { Vigne } from 'vigne'
 
 export const MOCK_DATA = {
   test: [
@@ -29,7 +29,7 @@ export const MOCK_DATA = {
   ],
 }
 
-ApiManager.registerModel({
+Vigne.registerModel({
   name: 'test',
   groupName: 'tests',
   desc: '',
@@ -55,7 +55,7 @@ ApiManager.registerModel({
   },
 })
 
-ApiManager.registerModel({
+Vigne.registerModel({
   name: 'model',
   groupName: 'models',
   desc: '',
@@ -94,7 +94,7 @@ ApiManager.registerModel({
   },
 })
 
-ApiManager.registerModel({
+Vigne.registerModel({
   name: 'connect',
   groupName: 'connects',
   desc: '',

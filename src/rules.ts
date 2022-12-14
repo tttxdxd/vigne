@@ -1,7 +1,7 @@
 import { hasOwnProperty, isObject, isString } from './utils'
 import type { ApiContext } from './context'
-import type { Token, TokenField } from './tokenizer'
-import { ApiManager } from '.'
+import { GlobalConfig } from './common/config'
+import type { Token, TokenField } from './types'
 
 export type IRule = (ctx: ApiContext, token: Token, key: string, value: any) => string | undefined
 
@@ -26,7 +26,7 @@ export class Rules {
         return undefined
 
       const fields: TokenField[] = []
-      const columns = ApiManager.MODEL_COLUMNS_MAP[token.model]!
+      const columns = GlobalConfig.MODEL_COLUMNS_MAP[token.model]!
       const nameSet: Record<string, TokenField> = {}
       const len = value.length
       const lastIndex = len - 1
@@ -37,6 +37,16 @@ export class Rules {
 
       do {
         const char = value[index]
+
+        if (char === ':') {
+          isAlias = true
+          continue
+        }
+
+        if (isAlias)
+          alias += char
+        else
+          field += char
 
         if (char === ',' || index === lastIndex) {
           if (alias) {
@@ -64,16 +74,9 @@ export class Rules {
           field = ''
           alias = ''
         }
-        else if (char === ':') {
-          isAlias = true
-        }
-        else if (isAlias) {
-          alias += char
-        }
-        field += char
-      } while (++index < len)
+      } while (++index <= len)
 
-      const specialColumns = ApiManager.MODEL_COLUMNS_KEY_MAP[token.model]!
+      const specialColumns = GlobalConfig.MODEL_COLUMNS_KEY_MAP[token.model]!
 
       for (let i = 0, len = specialColumns.length; i < len; i++) {
         const column = specialColumns[i]
@@ -89,7 +92,7 @@ export class Rules {
     [this.KEY_SORT]: (ctx: ApiContext, token: Token, key: string, value: any) => {
       if (!isString(value))
         return 'key is not a string'
-      const columns = ApiManager.MODEL_COLUMNS_MAP[token.model]!
+      const columns = GlobalConfig.MODEL_COLUMNS_MAP[token.model]!
 
       token.sorts = value
         .split(',')
@@ -105,7 +108,7 @@ export class Rules {
     },
     [this.KEY_PAGINATION]: (ctx: ApiContext, token: Token, key: string, value: any) => {
       if (value === true) {
-        token.modelExtra.keys.push(Rules.DEFAULT_PAGINATION_KEY)
+        token.extra.keys.push(Rules.DEFAULT_PAGINATION_KEY)
         token.pagination = {
           enabled: true,
           offset: Rules.DEFAULT_PAGINATION_LIMIT,
@@ -117,7 +120,7 @@ export class Rules {
         const enabled = hasOwnProperty(value, 'enabled') ? value.enabled : false
 
         if (enabled)
-          token.modelExtra.keys.push(Rules.DEFAULT_PAGINATION_KEY)
+          token.extra.keys.push(Rules.DEFAULT_PAGINATION_KEY)
         token.pagination = {
           enabled,
           offset: hasOwnProperty(value, 'offset') ? value.offset : Rules.DEFAULT_PAGINATION_LIMIT,

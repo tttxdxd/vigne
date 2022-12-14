@@ -1,16 +1,8 @@
+import { GlobalConfig } from './common/config'
+import { ApiType, TokenType } from './common/enum'
 import type { ApiContext } from './context'
-import { ApiType } from './context'
-import type { Token } from './tokenizer'
-import { TokenType } from './tokenizer'
-import { ApiManager } from '.'
-
-export interface IExecutor {
-  execute(ctx: ApiContext, token: Token, parsed: any): Promise<any>
-}
-
-interface IExecutorClass {
-  new (): IExecutor
-}
+import type { IExecutor, IExecutorClass, Token } from './types'
+import { isUndefined } from './utils'
 
 /**
  * 执行者 装饰器
@@ -21,7 +13,7 @@ export function Executor<TFunction extends IExecutorClass>(type?: string): Class
   return ((Target: TFunction) => {
     const name = type || Target.name
 
-    ApiManager.registerExecutor(name, new Target())
+    GlobalConfig.registerExecutor(name, new Target())
     return Target
   }) as any
 }
@@ -37,10 +29,10 @@ export class DefaultExecutor implements IExecutor {
 @Executor('memory')
 export class MemeryExecutor implements IExecutor {
   async execute(ctx: ApiContext, token: Token, parsed: Token) {
-    const modelConfig = ApiManager.MODEL_MAP[token.model]
+    const modelConfig = GlobalConfig.MODEL_MAP[token.model]
     const data: any = modelConfig.extra?.memory || []
-    const { filter, pagination } = parsed
-    let finalData = data.map((v: any) => v)
+    const { fields, filter, pagination } = parsed
+    let finalData = data.map((v: any) => this.pick(v, fields?.map(v => v.field)))
 
     if (filter) {
       const whereKeys = Object.keys(filter)
@@ -68,5 +60,15 @@ export class MemeryExecutor implements IExecutor {
     }
 
     return finalData
+  }
+
+  private pick(origin: any, props?: string[]) {
+    if (isUndefined(props) || props.length === 0)
+      return origin
+
+    return props.reduce<any>((map, prop) => {
+      map[prop] = origin[prop]
+      return map
+    }, {})
   }
 }
