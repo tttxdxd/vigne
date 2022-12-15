@@ -153,7 +153,6 @@ describe('query with condition', () => {
 
     expect(output).toMatchObject({
       data: {
-        test: undefined,
         model: MOCK_DATA.model[0],
       },
     })
@@ -165,7 +164,6 @@ describe('query with condition', () => {
 
     expect(output).toMatchObject({
       data: {
-        test: undefined,
         model: MOCK_DATA.model[0],
       },
     })

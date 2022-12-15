@@ -76,5 +76,5 @@ export interface ISimpleModelExtra {
   /**
    * 子节点
    */
-  childTokens: Token[]
+  tokens: Token[]
 }

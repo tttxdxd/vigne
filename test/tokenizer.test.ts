@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ApiContext } from 'vigne'
 
-import { TokenType } from '../src/common/enum'
-
 import './mock'
 
 const tokens = (input: Record<string, any>) => {
@@ -28,7 +26,6 @@ describe('tokenizer', () => {
 
     expect(output.length).toBe(1)
     expect(output[0]).toMatchObject({
-      type: TokenType.Info,
       model: 'test',
       info: { model: 'test', groupModel: 'tests', isGroup: false },
       extra: { isGroup: false, isUnion: false, isBatch: false, isBatchParent: false },
@@ -41,7 +38,6 @@ describe('tokenizer', () => {
 
     expect(output.length).toBe(1)
     expect(output[0]).toMatchObject({
-      type: TokenType.Info,
       model: 'test',
       info: { model: 'test', groupModel: 'tests', isGroup: false },
       extra: {
@@ -61,7 +57,6 @@ describe('tokenizer', () => {
 
     expect(output.length).toBe(1)
     expect(output[0]).toMatchObject({
-      type: TokenType.Info,
       model: 'test',
       info: { model: 'test', groupModel: 'tests', isGroup: false },
       extra: {
@@ -81,7 +76,6 @@ describe('tokenizer', () => {
 
     expect(output).toMatchObject([
       {
-        type: TokenType.Info,
         model: 'test',
         info: { model: 'test', groupModel: 'tests', isGroup: false },
         extra: {
@@ -94,7 +88,6 @@ describe('tokenizer', () => {
         },
       },
       {
-        type: TokenType.Info,
         model: 'model',
         info: { model: 'model', groupModel: 'models', isGroup: false },
         extra: {
@@ -120,7 +113,6 @@ describe('tokenizer', () => {
 
     expect(output).toMatchObject([
       {
-        type: TokenType.List,
         model: 'test',
         info: { model: 'test', groupModel: 'tests', isGroup: true },
         extra: {
@@ -133,7 +125,6 @@ describe('tokenizer', () => {
         },
       },
       {
-        type: TokenType.Info,
         model: 'model',
         info: { model: 'model', groupModel: 'models', isGroup: false },
         extra: {
@@ -159,7 +150,6 @@ describe('tokenizer', () => {
 
     expect(output).toMatchObject([
       {
-        type: TokenType.List,
         model: 'test',
         info: { model: 'test', groupModel: 'tests', isGroup: true },
         extra: {
@@ -172,7 +162,6 @@ describe('tokenizer', () => {
         },
       },
       {
-        type: TokenType.List,
         model: 'model',
         info: { model: 'model', groupModel: 'models', isGroup: true },
         extra: {
@@ -198,7 +187,6 @@ describe('tokenizer', () => {
 
     expect(output).toMatchObject([
       {
-        type: TokenType.Info,
         model: 'test',
         info: { model: 'test', groupModel: 'tests', isGroup: false },
         extra: {
@@ -211,7 +199,6 @@ describe('tokenizer', () => {
         },
       },
       {
-        type: TokenType.Info,
         model: 'model',
         info: { model: 'model', groupModel: 'models', isGroup: false },
         extra: {
@@ -224,7 +211,6 @@ describe('tokenizer', () => {
         },
       },
       {
-        type: TokenType.Info,
         model: 'connect',
         info: { model: 'connect', groupModel: 'connects', isGroup: false },
         extra: {
@@ -245,7 +231,6 @@ describe('tokenizer', () => {
 
     expect(output).toMatchObject([
       {
-        type: TokenType.Info,
         model: 'connect',
         info: { model: 'connect', groupModel: 'connects', isGroup: false },
         extra: {
@@ -258,7 +243,6 @@ describe('tokenizer', () => {
         },
       },
       {
-        type: TokenType.Info,
         model: 'test',
         info: { model: 'test', groupModel: 'tests', isGroup: false },
         extra: {
@@ -277,7 +261,6 @@ describe('tokenizer', () => {
         },
       },
       {
-        type: TokenType.Info,
         model: 'model',
         info: { model: 'model', groupModel: 'models', isGroup: false },
         extra: {
@@ -306,7 +289,6 @@ describe('tokenizer with condition', () => {
 
     expect(output).toMatchObject([
       {
-        type: TokenType.Info,
         model: 'test',
         info: { model: 'test', groupModel: 'tests', isGroup: false },
         extra: {
@@ -329,7 +311,6 @@ describe('tokenizer with condition', () => {
 
     expect(output).toMatchObject([
       {
-        type: TokenType.Info,
         model: 'test',
         info: { model: 'test', groupModel: 'tests', isGroup: false },
         extra: {

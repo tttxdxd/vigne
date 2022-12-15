@@ -1,6 +1,5 @@
 // #region Token type definitions
 
-import type { TokenType } from '../common/enum'
 import type { ISimpleModelConfig, ISimpleModelExtra } from '.'
 
 export interface TokenField {
@@ -41,24 +40,9 @@ export interface Token {
   id: string
 
   /**
-   * token 类型
+   * key
    */
-  type: TokenType
-
-  /**
-   * 模型名称
-   */
-  model: string
-
-  /**
-   * 模型简单配置信息
-   */
-  info: ISimpleModelConfig
-
-  /**
-   * 模型额外信息
-   */
-  extra: ISimpleModelExtra
+  key: string
 
   /**
    * 错误信息
@@ -66,28 +50,43 @@ export interface Token {
   errors: string[]
 
   /**
-   * 字段
-   */
+  * 模型名称
+  */
+  model: string
+
+  /**
+  * 模型简单配置信息
+  */
+  info: ISimpleModelConfig
+
+  /**
+  * 模型额外信息
+  */
+  extra: ISimpleModelExtra
+
+  /**
+  * 字段
+  */
   fields?: TokenField[]
 
   /**
-   * 排序
-   */
+  * 排序
+  */
   sorts?: TokenSort[]
 
   /**
-   * 分页
-   */
+  * 分页
+  */
   pagination?: TokenPagination
 
   /**
-   * 条件查询
-   */
+  * 条件查询
+  */
   filter?: TokenFilter
 
   /**
-   * 外键
-   */
+  * 外键
+  */
   foreign?: TokenForeign
 }
 

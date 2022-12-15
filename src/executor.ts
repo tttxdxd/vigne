@@ -1,8 +1,8 @@
 import { GlobalConfig } from './common/config'
-import { ApiType, TokenType } from './common/enum'
+import { ApiType } from './common/enum'
 import type { ApiContext } from './context'
 import type { IExecutor, IExecutorClass, Token } from './types'
-import { isUndefined } from './utils'
+import { pick } from './utils'
 
 /**
  * 执行者 装饰器
@@ -32,7 +32,7 @@ export class MemeryExecutor implements IExecutor {
     const modelConfig = GlobalConfig.MODEL_MAP[token.model]
     const data: any = modelConfig.extra?.memory || []
     const { fields, filter, pagination } = parsed
-    let finalData = data.map((v: any) => this.pick(v, fields?.map(v => v.field)))
+    let finalData = data.map((v: any) => pick(v, fields?.map((v: any) => v.field)))
 
     if (filter) {
       const whereKeys = Object.keys(filter)
@@ -50,7 +50,7 @@ export class MemeryExecutor implements IExecutor {
 
     if (ApiType.Count === ctx.type)
       return finalData.length
-    if (TokenType.Info === token.type)
+    if (!token.extra.isBatch)
       return finalData[0]
 
     if (pagination) {
@@ -60,15 +60,5 @@ export class MemeryExecutor implements IExecutor {
     }
 
     return finalData
-  }
-
-  private pick(origin: any, props?: string[]) {
-    if (isUndefined(props) || props.length === 0)
-      return origin
-
-    return props.reduce<any>((map, prop) => {
-      map[prop] = origin[prop]
-      return map
-    }, {})
   }
 }

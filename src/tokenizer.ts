@@ -1,23 +1,20 @@
 import { hasOwnProperty, isFunction, isNotUndefined, isNull, isUndefined } from './utils'
-import type { ApiContext } from './context'
 import { Rules } from './rules'
-import { TokenType } from './common/enum'
-import type { ISimpleModelConfig, ISimpleModelExtra, Token, TokenForeign } from './types'
+import type { IInput, ISimpleModelConfig, ISimpleModelExtra, Token, TokenForeign } from './types'
 import { GlobalConfig } from './common/config'
 
 /**
  * 入参解析
  */
 export class Tokenizer {
-  tokenize(ctx: ApiContext): Token[] {
+  tokenize(input: IInput): Token[] {
     const tokens: Token[] = []
-    const input = ctx.input
     const inputKeys = Object.keys(input)
 
     for (let i = 0, len = inputKeys.length; i < len; i++) {
       const inputKey = inputKeys[i]
-      const inputValue = this.getModelValue(ctx, inputKey, input[inputKey])
-      const inputTokens = this.getTokens(ctx, inputKey, inputValue)
+      const inputValue = this.getModelValue(inputKey, input[inputKey])
+      const inputTokens = this.getTokens(inputKey, inputValue)
 
       tokens.push(...inputTokens)
     }
@@ -26,7 +23,6 @@ export class Tokenizer {
   }
 
   private getTokens(
-    ctx: ApiContext,
     mainKey: string,
     mainValue?: Record<string, any>,
     parentTokens: Token[] = [],
@@ -34,23 +30,18 @@ export class Tokenizer {
   ): Token[] {
     const tokens: Token[] = []
 
-    if (isUndefined(mainValue)) {
-      ctx.errors.push('')
-      return tokens
-    }
+    if (isUndefined(mainValue))
+      return [{ id: '', key: mainKey, errors: [''] } as any]
 
     const modelInfo = this.getModelInfo(mainKey, mainValue)
 
-    if (modelInfo === null) {
-      ctx.errors.push('')
-      return tokens
-    }
+    if (modelInfo === null)
+      return [{ id: '', key: mainKey, errors: [''] } as any]
 
     const parentToken = parentTokens.length ? parentTokens[parentTokens.length - 1] : undefined
     const modelExtra = this.getModelExtra(mainKey, modelInfo, parentToken)
     const modelRules = GlobalConfig.MODEL_RULES_MAP[modelInfo.model]!
-    const tokenType = this.getTokenType(modelExtra)
-    const token = this.token(tokenType, modelInfo, modelExtra, foriegn)
+    const token = this.token(mainKey, modelInfo, modelExtra, foriegn)
 
     tokens.push(token)
 
@@ -69,7 +60,7 @@ export class Tokenizer {
       const rule = modelRules[key]
 
       if (isFunction(rule)) {
-        const error = rule.call(this, ctx, token, key, value)
+        const error = rule.call(this, token, key, value)
 
         if (isUndefined(error))
           continue
@@ -78,8 +69,11 @@ export class Tokenizer {
         return tokens
       }
 
+      if (token.errors.length)
+        return tokens
+
       // parse foriegn
-      const foriegnTokens = this.getForeignTokens(ctx, key, value, [...parentTokens, token])
+      const foriegnTokens = this.getForeignTokens(key, value, [...parentTokens, token])
 
       if (foriegnTokens !== null) {
         afterTokens.push(...foriegnTokens)
@@ -92,13 +86,13 @@ export class Tokenizer {
 
     // TODO 未查询嵌套节点， 无需查询额外的父节点参数
 
-    token.extra.childTokens = afterTokens
+    token.extra.tokens = afterTokens
     tokens.push(...afterTokens)
 
     return tokens
   }
 
-  private getModelValue(ctx: ApiContext, key: string, value: any): Record<string, any> | undefined {
+  private getModelValue(key: string, value: any): Record<string, any> | undefined {
     const modelValue = Rules.MODEL_RULE(value)
 
     if (modelValue === true)
@@ -134,20 +128,13 @@ export class Tokenizer {
       isBatchParent,
       keys: [mainKey],
       parentKeys: isUnion ? [...parentToken.extra.parentKeys, ...parentToken.extra.keys] : [],
-      childTokens: [],
+      tokens: [],
     }
 
     return modelExtra
   }
 
-  private getTokenType(modelExtra: ISimpleModelExtra): TokenType {
-    if (modelExtra.isGroup)
-      return TokenType.List
-
-    return TokenType.Info
-  }
-
-  private getForeignTokens(ctx: ApiContext, key: string, value: any, parentTokens: Token[]): Token[] | null {
+  private getForeignTokens(key: string, value: any, parentTokens: Token[]): Token[] | null {
     const modelInfo = this.getModelInfo(key, value)
 
     if (isNull(modelInfo))
@@ -162,7 +149,7 @@ export class Tokenizer {
       const reverseForeign = parentModelInfo.foreigns?.find(v => v.reference === modelInfo.model)
 
       if (isNotUndefined(reverseForeign)) {
-        return this.getTokens(ctx, key, value, parentTokens, {
+        return this.getTokens(key, value, parentTokens, {
           key: reverseForeign.referKey,
           reference: parentModelInfo.name,
           referKey: reverseForeign.key,
@@ -173,24 +160,23 @@ export class Tokenizer {
       return null
     }
 
-    return this.getTokens(ctx, key, value, parentTokens, foreign)
+    return this.getTokens(key, value, parentTokens, foreign)
   }
 
   private token(
-    type: TokenType,
+    key: string,
     info: ISimpleModelConfig,
     extra: ISimpleModelExtra,
     foreign?: TokenForeign,
   ): Token {
     return {
       id: '',
-      type,
+      key,
+      errors: [],
       model: info.model,
       info,
       extra,
-      errors: [],
-      foreign,
-      filter: foreign ? {} : undefined,
+      foreign: foreign || undefined,
     }
   }
 }

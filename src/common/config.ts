@@ -1,4 +1,3 @@
-import type { ApiContext } from '../context'
 import type { IRule } from '../rules'
 import { Rules } from '../rules'
 import { Tokenizer } from '../tokenizer'
@@ -38,7 +37,7 @@ export class GlobalConfig {
     this.MODEL_RULES_MAP[model] = {
       ...Rules.KEY_LOADER_MAP,
       ...modelConfig.columns.reduce<Record<string, IRule>>((map, column) => {
-        map[column.key] = (ctx: ApiContext, token: Token, key: string, value: any) => {
+        map[column.key] = (token: Token, key: string, value: any) => {
           if (token.extra.isGroup) {
             if (Array.isArray(value)) {
               if (value.some(v => typeof v !== column.type))
@@ -77,3 +76,34 @@ export class GlobalConfig {
     this.executors[type] = executor
   }
 }
+
+export interface Config {
+  keys: {
+    model: string
+    field: string
+    sort: string
+    pagination: string
+  }
+
+  pagination: {
+    key: string
+    offset: number
+    limit: number
+  }
+}
+
+export const DEFAULT_CONFIG: Config = {
+  keys: {
+    model: '@model',
+    field: '@field',
+    sort: '@sort',
+    pagination: '@pagination',
+  },
+  pagination: {
+    key: 'pagination',
+    offset: 0,
+    limit: 10,
+  },
+}
+
+export function defineConfig() {}

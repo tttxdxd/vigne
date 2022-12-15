@@ -1,5 +1,5 @@
 import { GlobalConfig } from './common/config'
-import { isArray, isNotUndefined, isUndefined } from './utils'
+import { isArray, isUndefined, set } from './utils'
 import type { IInput, IOutput, Token, TokenField } from './types'
 import { ApiType } from './common/enum'
 
@@ -8,7 +8,7 @@ export class ApiContext {
   input: IInput
   output: IOutput
 
-  cache: any = {}
+  cache: Record<string, Record<string, { key: string; keys: string[]; map: Record<string, any> }>> = {}
   tokens: Token[] = []
   parsed: any[] = []
   errors: string[] = []
@@ -21,8 +21,16 @@ export class ApiContext {
 
   async tokenize() {
     const tokenizer = GlobalConfig.tokenizers[this.type]
+    const tokens = tokenizer.tokenize(this.input)
 
-    this.tokens = tokenizer.tokenize(this)
+    for (let i = 0, len = tokens.length; i < len; i++) {
+      const token = tokens[i]
+
+      if (token.errors.length)
+        this.errors.push(...token.errors)
+      else
+        this.tokens.push(token)
+    }
 
     return this.errors
   }
@@ -30,13 +38,6 @@ export class ApiContext {
   async parse() {
     for (let i = 0, len = this.tokens.length; i < len; i++) {
       const token = this.tokens[i]
-
-      if (token.errors.length) {
-        this.errors.push('')
-        this.parsed.push(null)
-        continue
-      }
-
       const parser = GlobalConfig.parsers[token.info.parser]
 
       if (isUndefined(parser)) {
@@ -52,77 +53,35 @@ export class ApiContext {
   }
 
   async execute() {
-    const cache: any = {}
     const data: any = {}
 
     for (let i = 0, len = this.tokens.length; i < len; i++) {
       const token = this.tokens[i]
       const parsed = this.parsed[i]
-      const { foreign } = token
-      const { parentKeys, keys, isBatchParent, isGroup } = token.extra
-      const parentPath = parentKeys.join('.')
 
       if (parsed === null) {
-        if (isNotUndefined(foreign)) {
-          const parentCache = cache?.[parentPath]?.[foreign.referKey]
-
-          if (isBatchParent) {
-            parentCache.keys.forEach((key: any) => {
-              this.set(parentCache.map[key], keys, undefined)
-            })
-          }
-          else {
-            this.set(parentCache.map[parentCache.key], keys, undefined)
-          }
-        }
-
-        if (parentKeys.length !== 0)
-          continue
-
-        this.set(data, keys, undefined)
-
-        i += token.extra.childTokens.length
+        i += token.extra.tokens.length
         continue
       }
 
-      if (isNotUndefined(foreign)) {
-        const parentCache = cache?.[parentPath]?.[foreign.referKey]
-        const filterData = isBatchParent ? parentCache.keys : parentCache.key
+      const { parentKeys, keys } = token.extra
 
-        token.filter[foreign.key] = filterData
-      }
+      this.handleBeforeForeign(token)
 
       const executor = GlobalConfig.executors[token.info.executor]
       const value = await executor.execute(this, token, parsed)
-      const cacheValue = this.handleResponse(value, token, cache, parentKeys, keys)
+      const cacheValue = this.handleResponse(value, token)
 
-      this.handleAlias(value, token)
-
-      if (isNotUndefined(foreign)) {
-        const parentCache = cache?.[parentPath]?.[foreign.referKey]
-        const currentCache = cacheValue[foreign.referKey]
-
-        if (isBatchParent) {
-          parentCache.keys.forEach((key: any) => {
-            const tempValue = isGroup
-              ? currentCache.keys.map(key => currentCache.map[key])
-              : currentCache.map[currentCache.key]
-
-            this.set(parentCache.map[key], keys, tempValue)
-          })
-        }
-        else {
-          this.set(parentCache.map[parentCache.key], keys, value)
-        }
-      }
+      this.handleAlias(token, value)
+      this.handleAfterForeign(token, cacheValue, value)
 
       if (parentKeys.length !== 0)
         continue
 
-      this.set(data, keys, value)
+      set(data, keys, value)
 
       if (isUndefined(value)) {
-        i += token.extra.childTokens.length
+        i += token.extra.tokens.length
         continue
       }
     }
@@ -132,34 +91,12 @@ export class ApiContext {
     return this.errors
   }
 
-  private set(origin: any, path: string[], value: any) {
-    if (typeof origin !== 'object')
-      return origin
-
-    const len = path.length
-    const lastIndex = len - 1
-    let nested = origin
-    for (let i = 0; i < lastIndex; i++) {
-      const key = path[i]
-      const value = nested[key]
-
-      if (isUndefined(value))
-        nested[key] = {}
-
-      nested = nested[key]
-    }
-
-    nested[path[lastIndex]] = value
-
-    return origin
-  }
-
-  private handleResponse(value: any, token: Token, parentCache: any, parentKeys: string[], keys: string[]) {
+  private handleResponse(value: any, token: Token) {
     const specialColumns = GlobalConfig.MODEL_COLUMNS_KEY_MAP[token.model]!
     const cache: Record<string, { key: any; keys: any[]; map: any }> = {}
 
     const specialFields: TokenField[]
-      = token.fields?.filter(v => v.temporary) || specialColumns.map(column => ({ field: column.key }))
+      = token.fields?.filter((v: any) => v.temporary) || specialColumns.map(column => ({ field: column.key }))
 
     for (let i = 0, len = specialFields.length; i < len; i++) {
       const { field, temporary } = specialFields[i]
@@ -198,17 +135,56 @@ export class ApiContext {
       cache[field] = nodeCache
     }
 
-    if (specialFields.length)
-      parentCache[[...parentKeys, ...keys].join('.')] = cache
+    if (specialFields.length) {
+      const { parentKeys, keys } = token.extra
+
+      this.cache[[...parentKeys, ...keys].join('.')] = cache
+    }
 
     return cache
   }
 
-  private handleAlias(value: any, token: Token) {
+  private handleBeforeForeign(token: Token) {
+    if (isUndefined(token.foreign))
+      return
+    const { foreign, extra: { isBatchParent, parentKeys } } = token
+    const parentPath = parentKeys.join('.')
+    const parentCache = this.cache?.[parentPath]?.[foreign.referKey]
+    const filterData = isBatchParent ? parentCache.keys : parentCache.key
+
+    if (isUndefined(token.filter))
+      token.filter = {}
+    token.filter[foreign.key] = filterData
+  }
+
+  private handleAfterForeign(token: Token, cacheValue: any, value: any) {
+    if (isUndefined(token.foreign))
+      return
+
+    const { foreign, extra: { isBatchParent, isGroup, parentKeys, keys } } = token
+    const parentPath = parentKeys.join('.')
+    const parentCache = this.cache?.[parentPath]?.[foreign.referKey]
+    const currentCache = cacheValue[foreign.referKey]
+
+    if (isBatchParent) {
+      parentCache.keys.forEach((key: any) => {
+        const tempValue = isGroup
+          ? currentCache.keys.map((key: any) => currentCache.map[key])
+          : currentCache.map[currentCache.key]
+
+        set(parentCache.map[key], keys, tempValue)
+      })
+    }
+    else {
+      set(parentCache.map[parentCache.key], keys, value)
+    }
+  }
+
+  private handleAlias(token: Token, value: any) {
     if (isUndefined(value))
       return
 
-    const aliaFields: TokenField[] = token.fields?.filter(v => v.alias) || []
+    const aliaFields: TokenField[] = token.fields?.filter((v: any) => v.alias) || []
 
     if (aliaFields.length) {
       for (let i = 0, len = aliaFields.length; i < len; i++) {

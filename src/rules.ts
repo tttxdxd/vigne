@@ -1,9 +1,8 @@
 import { hasOwnProperty, isObject, isString } from './utils'
-import type { ApiContext } from './context'
 import { GlobalConfig } from './common/config'
 import type { Token, TokenField } from './types'
 
-export type IRule = (ctx: ApiContext, token: Token, key: string, value: any) => string | undefined
+export type IRule = (token: Token, key: string, value: any) => string | undefined
 
 export class Rules {
   static KEY_MODEL = '@model'
@@ -19,7 +18,7 @@ export class Rules {
   static MODEL_RULE = (value: unknown) => (value === true || isObject(value) ? value : undefined)
   static KEY_LOADER_MAP: Record<string, IRule> = {
     [this.KEY_MODEL]: () => undefined,
-    [this.KEY_FIELD]: (ctx: ApiContext, token: Token, key: string, value: any) => {
+    [this.KEY_FIELD]: (token: Token, key: string, value: any) => {
       if (!isString(value))
         return 'key is not a string'
       if (value.length === 0)
@@ -89,7 +88,7 @@ export class Rules {
 
       token.fields = fields
     },
-    [this.KEY_SORT]: (ctx: ApiContext, token: Token, key: string, value: any) => {
+    [this.KEY_SORT]: (token: Token, key: string, value: any) => {
       if (!isString(value))
         return 'key is not a string'
       const columns = GlobalConfig.MODEL_COLUMNS_MAP[token.model]!
@@ -106,7 +105,7 @@ export class Rules {
         })
         .filter(({ field }) => columns[field])
     },
-    [this.KEY_PAGINATION]: (ctx: ApiContext, token: Token, key: string, value: any) => {
+    [this.KEY_PAGINATION]: (token: Token, key: string, value: any) => {
       if (value === true) {
         token.extra.keys.push(Rules.DEFAULT_PAGINATION_KEY)
         token.pagination = {
